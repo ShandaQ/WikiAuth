@@ -1,0 +1,3 @@
+page about camels
+
+<a href="/CamelLink">CamelLink</a>
