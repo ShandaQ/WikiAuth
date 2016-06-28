@@ -9,14 +9,39 @@ var wikiLinkify = require('wiki-linkify');
 
 var marked = require('marked');
 
+var session = require('express-session');
+
 app.use(bodyParser.urlencoded({extended: false}));
-
-app.set('view engine', 'hbs');
 app.use(express.static('public'));
+app.set('view engine', 'hbs');
 
+// session timer
+app.use(session({
+  secret: 'secretCodeWishYouKnewItHa',
+  cookie: {
+    maxAge: 24 * 60 * 60000
+  }
+}));
 
 app.get('/', function(req, res){
   res.redirect('/HomePage');
+});
+
+// login in page
+app.get('/login', function(req, res){
+  res.render('login.hbs', {
+    title: 'Login'
+  });
+});
+
+app.post('/login-submit', function(req, res){
+  var credentials = req.body;
+  if(credentials.username === 'Shanda@hotmail.com' && credentials.password === 'shandasPassword'){
+    req.session.user = credentials.username;
+    res.redirect(req.session.requestUrl);
+  }else {
+    res.redirect('/login');
+  }
 });
 
 app.get('/:pageName', function(req, res){
@@ -64,7 +89,7 @@ app.get('/:pageName', function(req, res){
 
 
 
-app.get('/:pageName/edit', function(req, res){
+app.get('/:pageName/edit', authRequired, function(req, res){
   var pageName = req.params.pageName;
   var fileName = './pages/' + pageName + '.txt';
   // check to see if the file .txt file exist
@@ -101,7 +126,7 @@ app.get('/:pageName/edit', function(req, res){
 
 
 // handle the save request, POST the contents of a page
-app.post('/:pageName/save', function(req, res){
+app.post('/:pageName/save', authRequired, function(req, res){
   // take info from the form and save it to a file - need a body parser
 
   // can i recieve the contents of the form, in a javascript object
@@ -122,9 +147,18 @@ app.post('/:pageName/save', function(req, res){
       res.redirect('/' + pageName);
     }
   });
-
-
 });
+
+// authRequired is a function that
+function authRequired(req, res, next){
+  if(!req.session.user){
+    req.session.requestUrl = req.url;
+    res.redirect('/login');
+  }else {
+    next();
+  }
+}
+
 
 app.listen(3000, function(){
   console.log('Listening on port 3000');
